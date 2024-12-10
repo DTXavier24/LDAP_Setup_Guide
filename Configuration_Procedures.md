@@ -1,4 +1,4 @@
-<h1 align="center">OpenLDAP Configuration Guide 🔐</h1>
+<h1 align="center">OpenLDAP Configuration Guide 🌐</h1>
 
 <p align="center">
   <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-blue.svg?cacheSeconds=2592000" />
@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  Comprehensive Guide for Configuring LDAP on Linux Systems
+  Comprehensive Guide for Configuring OpenLDAP on Linux Systems
 </p>
 
 > This repository provides a detailed walkthrough for configuring open-source LDAP (Lightweight Directory Access Protocol) on CentOS and Ubuntu Linux distributions. Learn how to integrate your systems with centralized authentication services efficiently and securely.
@@ -21,12 +21,13 @@
 ## 📘 References
 - https://www.ibm.com/docs/en/rpa/23.0?topic=ldap-installing-configuring-openldap#installing-openldap-on-linux
 - https://ubuntu.com/server/docs/how-to-set-up-sssd-with-ldap
+- https://www.youtube.com/watch?v=Q1kwHHmlxnQ
 
 ## 🔧 Prerequisites
 - Ensure both server and client can ping each other
 - Ensure server machine has DNS configured and working properly.
 
-## 🔨 Default Installation
+## 🔏	 Default Installation
 
 ### On Centos 
 1. Include EPEL repository
@@ -265,7 +266,7 @@ Paste the following below inside the file.
 config_file_version = 2
 domains = snaserver.sna.org
 
-[domain/example.com]
+[domain/snaserver.sna.org]
 id_provider = ldap
 auth_provider = ldap
 ldap_uri = ldap://192.168.100.4
@@ -312,3 +313,180 @@ sudo login Jack
 ![image](https://github.com/user-attachments/assets/3f62776f-0332-48d5-adcf-d91c88295b47)
 
 This means LDAP is working as intended
+
+## 🔨 Secure OpenLDAP with SSL/TLS
+
+### On Centos
+1. Setup hostname
+```console
+sudo nano /etc/hosts
+```
+
+Add respective IP address and hostname into the file
+```console
+192.168.100.4  snaserver.sna.org
+```
+
+2. Create an SSL certificate using OpenSSL
+```console
+sudo dnf -y install openssl
+```
+
+Create a directory to store the certificate
+```console
+sudo mkdir /etc/ssl/ldap
+```
+
+Create the .key and .crt file
+```console
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/ldap/ldap-selfsigned.key -out /etc/ssl/ldap/ldap-selfsigned.crt
+```
+
+![image](https://github.com/user-attachments/assets/7da40590-e75f-4cc9-826d-f0be44b9ed1c)
+
+Change both file owner to ldap
+```console
+sudo chown ldap:ldap /etc/ssl/ldap/ldap-selfsigned.key
+sudo chown ldap:ldap /etc/ssl/ldap/ldap-selfsigned.crt
+```
+
+3. Make OpenLDAP configuration changes
+<br>Create a file to make config changes.
+```console
+sudo nano ssl.ldif
+```
+
+Paste the following into the file.
+```console
+dn: cn=config
+changetype: modify
+replace: olcTLSCertificateFile
+olcTLSCertificateFile: /etc/ssl/ldap/ldap-selfsigned.crt
+-
+replace: olcTLSCertificateKeyFile
+olcTLSCertificateKeyFile: /etc/ssl/ldap/ldap-selfsigned.crt
+```
+
+Use ldapmodify to make configuration changes.
+```console
+ldapmodify -Y EXTERNAL -H ldapi:/// -f ssl.ldif
+```
+
+Change URI reference in OpenLDAP configuration file.
+```console
+sudo nano /etc/openldap/ldap.conf
+```
+
+On the 'URI' line, make sure it's using 'ldaps' instead of 'ldap'
+```console
+URI  ldaps://192.168.100.4
+```
+
+On the 'TLS_CACERT' line, uncomment it and mention the SSL certificate path
+```console
+TLS_CACERT  /etc/ssl/ldap/ldap-selfsigned.crt
+```
+
+Restart the service.
+```console
+sudo systemctl restart slapd
+```
+
+4. Make firewall changes
+```console
+sudo firewall-cmd --permanent --add-port=636/tcp
+sudo firewall-cmd --reload
+```
+
+5. Test the service
+<br>Run the command below and make sure no errors occur.
+```console
+ldapsearch -x -H ldaps://192.168.100.4 -b "dc=snaserver,dc=sna,dc=org"
+```
+```console
+ldapsearch -x -H ldaps://snaserver.sna.org -b "dc=snaserver,dc=sna,dc=org"
+```
+
+![image](https://github.com/user-attachments/assets/007bcc6c-f853-4fe0-9c7e-92c5490190f0)
+
+This means ldaps is working as intended.
+
+### On Ubuntu
+1. Allow ldap to request SSL certificate from server
+```console
+sudo nano /etc/ldap/ldap.conf
+```
+
+Add the following below
+```console
+TLS_REQCERT  allow
+```
+
+2. Change sssd configurations
+```console
+sudo nano /etc/sssd/sssd.conf
+```
+
+Add the following below.
+```console
+ldap_id_use_start_tls = true
+```
+
+On the 'ldap_uri', make sure it's using 'ldaps'
+```console
+ldap_uri = ldaps://snaserver.sna.org
+```
+
+Restart SSSD service
+```console
+sudo systemctl restart sssd
+```
+
+3. Test the service
+<br>Run the command below and make sure no errors occur.
+```console
+ldapsearch -x -H ldaps://snaserver.sna.org -b "dc=snaserver,dc=sna,dc=org"
+```
+
+![image](https://github.com/user-attachments/assets/9eeb4dd2-6847-4a0a-ab09-4c8f28d4a429)
+
+This means ldaps is working as intended.
+
+login as any ldap user
+```console
+sudo login Jack
+```
+
+Run this command
+```console
+ldapwhoami -x -ZZ -H ldap://snaserver.sna.org
+```
+
+On CentOS, run this command
+Run this command
+```console
+sudo systemctl status slapd
+```
+
+![image](https://github.com/user-attachments/assets/6fa464c1-3ba9-4770-87be-b18ad3559bcc)
+
+Make sure able to see log info such as 'STARTTLS', 'TLS established' and 'err=0'.
+
+This means ldaps is working as intended.
+
+Back to ubuntu, run this command.
+```console
+ldapwhoami -x -H ldaps://snaserver.sna.org
+```
+
+On CentOS, run this command
+Run this command
+```console
+sudo systemctl status slapd
+```
+
+![image](https://github.com/user-attachments/assets/ddc69c3b-dc4e-4aa2-95d2-5593d3614468)
+
+Make sure able to see log info such 'TLS established' and 'err=0'.
+
+This means ldaps is working as intended.
