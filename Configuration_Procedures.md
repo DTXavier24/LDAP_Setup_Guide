@@ -27,7 +27,7 @@
 - Ensure both server and client can ping each other
 - Ensure server machine has DNS configured and working properly.
 
-## 🔏	 Default Installation
+## 🔨	 Default Installation
 
 ### On Centos 
 1. Include EPEL repository
@@ -314,7 +314,7 @@ sudo login Jack
 
 This means LDAP is working as intended
 
-## 🔨 Secure OpenLDAP with SSL/TLS
+## 🔏 Secure OpenLDAP with SSL/TLS
 
 ### On Centos
 1. Setup hostname
