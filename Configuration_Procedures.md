@@ -22,10 +22,13 @@
 - https://www.ibm.com/docs/en/rpa/23.0?topic=ldap-installing-configuring-openldap#installing-openldap-on-linux
 - https://ubuntu.com/server/docs/how-to-set-up-sssd-with-ldap
 - https://www.youtube.com/watch?v=Q1kwHHmlxnQ
+- https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/deploying_mail_servers/assembly_mail-transport-agent_deploying-mail-servers#proc_using-an-ldap-directory-as-a-lookup-table_assembly_mail-transport-agent
+- https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/deploying_different_types_of_servers/configuring-and-maintaining-a-dovecot-imap-and-pop3-server_deploying-different-types-of-servers#setting-up-a-dovecot-server-with-ldap-authentication_configuring-and-maintaining-a-dovecot-imap-and-pop3-server
 
 ## 🔧 Prerequisites
 - Ensure both server and client can ping each other
 - Ensure server machine has DNS configured and working properly.
+- Ensure mail server is working properly.
 
 ## 🔨	 Default Installation
 
@@ -490,3 +493,5 @@ sudo systemctl status slapd
 Make sure able to see log info such 'TLS established' and 'err=0'.
 
 This means ldaps is working as intended.
+
+## 📧	 Intergration with mail server
