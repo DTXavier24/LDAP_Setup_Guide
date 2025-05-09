@@ -494,4 +494,72 @@ Make sure able to see log info such 'TLS established' and 'err=0'.
 
 This means ldaps is working as intended.
 
-## 📧	 Intergration with mail server
+## 🌐 Intergration with web server
+1. Install mod_ldap
+```console
+sudo dnf -y install mod_ldap
+```
+
+2. Create a new directory to set for Basic Authentication
+```console
+sudo nano /etc/httpd/conf.d/authnz_ldap.conf
+```
+
+Paste this into the file.
+<br>Replace with server's IP address
+<br>Replace with server's domain controller (DC)
+<br>Remember to mention the organizational unit (OU)
+```console
+<Directory "/var/www/html/auth-ldap">
+    AuthType Basic
+    AuthName "LDAP Authentication"
+    AuthBasicProvider ldap
+    AuthLDAPURL "ldap://192.168.100.128:389/ou=People,dc=snaserver,dc=sna,dc=org?uid?sub"
+    Require valid-user
+</Directory>
+```
+
+![image](https://github.com/user-attachments/assets/adaebc79-44c3-45c8-91f7-d95464450b3e)
+
+3. Change file group owner to 'apache'
+```console
+chgrp apache /etc/httpd/conf.d/authnz_ldap.conf
+```
+
+4. Change permission of the file
+```console
+chmod 640 /etc/httpd/conf.d/authnz_ldap.conf
+```
+
+5. Restart the service
+```console
+systemctl restart httpd
+```
+
+6. Create the web page for ldap authentication
+```console
+mkdir /var/www/html/auth-ldap
+```
+```console
+nano /var/www/html/auth-ldap/index.html
+```
+
+Paste the content into the file
+```console
+<html>
+<body>
+Test Page for LDAP Authentication
+</div>
+</body>
+</html>
+```
+
+7. Change policy for SELinux
+```console
+setsebool -P httpd_can_network_connect on
+setsebool -P httpd_can_connect_ldap on
+```
+
+8. Test out the page.
+![image](https://github.com/user-attachments/assets/588a322c-4015-44cf-9b8f-692a14dcf09e)
+![image](https://github.com/user-attachments/assets/4089cdf0-2dd5-44eb-bf0c-c047e8e194dd)
